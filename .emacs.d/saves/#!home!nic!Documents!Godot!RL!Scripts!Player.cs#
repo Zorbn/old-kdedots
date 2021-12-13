@@ -1,0 +1,140 @@
+using System;
+using Godot;
+
+public class Player : KinematicBody2D
+{
+	public enum Direction
+	{
+		Forward,
+		Backward,
+		Left,
+		Right
+	}
+	
+	public bool animatingHead;
+	
+	[Export] private float speed = 1.0f;
+	private Vector2 move = Vector2.Zero;c
+
+	private Node2D sprite;
+	private AnimatedSprite bodySprite;
+	private AnimatedSprite headSprite;
+	private AnimatedSprite legsSprite;
+	private AnimatedSprite handsSprite;
+	private Direction lastDirection;
+	
+	public override void _Ready()
+	{
+		sprite = GetNode<Node2D>("Sprite");
+		bodySprite = sprite.GetNode<AnimatedSprite>("BodySprite");
+		headSprite = sprite.GetNode<AnimatedSprite>("HeadSprite");
+		legsSprite = sprite.GetNode<AnimatedSprite>("LegsSprite");
+		handsSprite = sprite.GetNode<AnimatedSprite>("HandsSprite");
+	}
+
+	public override void _PhysicsProcess(float delta)
+	{
+		Vector2 moveAxes = Vector2.Zero;
+		moveAxes.x = Input.GetAxis("move_left", "move_right");
+		moveAxes.y = Input.GetAxis("move_up", "move_down");
+
+		if (moveAxes != Vector2.Zero)
+			moveAxes = moveAxes.Normalized();
+		
+		move.x = speed * moveAxes.x;
+		move.y = speed * moveAxes.y;
+
+		if (move.y != 0)
+		{
+			if (move.y > 0) { AnimRunForward(); } else { AnimRunBackward(); }
+		}
+		else if (move.x != 0)
+		{
+			if (move.x > 0) { AnimRunRight(); } else { AnimRunLeft(); }
+		}
+		else
+		{
+			AnimIdle();
+		}
+
+		MoveAndCollide(move);
+	}
+
+	private void AnimRunForward()
+	{
+		legsSprite.Animation = "Vertical";
+		bodySprite.Animation = "Vertical";
+		lastDirection = Direction.Forward;
+		ResetHeadAnim();
+	}
+
+	private void AnimRunBackward()
+	{
+		legsSprite.Animation = "Vertical";
+		bodySprite.Animation = "Vertical";
+		lastDirection = Direction.Backward;
+		ResetHeadAnim();
+	}
+
+	private void AnimRunLeft()
+	{
+		legsSprite.Animation = "Horizontal";
+		bodySprite.Animation = "Horizontal";
+		AnimFlipH(true);
+		lastDirection = Direction.Left;
+		ResetHeadAnim();
+	}
+
+	private void AnimRunRight()
+	{
+		legsSprite.Animation = "Horizontal";
+		bodySprite.Animation = "Horizontal";
+		AnimFlipH(false);
+		lastDirection = Direction.Right;
+		ResetHeadAnim();
+	}
+
+	public void ResetHeadAnim()
+	{
+		UpdateHeadAnim(lastDirection);
+	}
+
+	public void UpdateHeadAnim(Direction direction)
+	{
+		if (animatingHead) return;
+		
+		switch (direction)
+		{
+			case Direction.Forward:
+				headSprite.Animation = "Forward";
+				break;
+			case Direction.Backward:
+				headSprite.Animation = "Backward";
+				break;
+			case Direction.Left:
+				headSprite.Animation = "Side";
+				headSprite.FlipH = true;
+				break;
+			case Direction.Right:
+				headSprite.Animation = "Side";
+				headSprite.FlipH = false;
+				break;
+			default:
+				throw new ArgumentOutOfRangeException();
+		}
+	}
+
+	private void AnimIdle()
+	{
+		legsSprite.Animation = "Idle";
+	}
+
+	private void AnimFlipH(bool flip)
+	{
+		bodySprite.FlipH = flip;
+		legsSprite.FlipH = flip;
+		handsSprite.FlipH = flip;
+		
+		if (!animatingHead) headSprite.FlipH = flip;
+	}
+}

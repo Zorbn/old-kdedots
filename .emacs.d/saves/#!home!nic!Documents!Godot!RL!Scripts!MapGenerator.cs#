@@ -1,0 +1,55 @@
+using Godot;
+
+public class MapGenerator : Node
+{
+	private TileMap tileMap;
+	private TileMap foregroundTileMap;
+
+	[Export] private PackedScene[] chunks;
+	[Export] private PackedScene[] paths;
+	[Export] private int chunkSize = 16;
+	[Export] private int pathWidth = 3;
+	[Export] private int horizontalChunks = 8;
+	[Export] private int verticalChunks = 8;
+	
+	public override void _Ready()
+	{
+		tileMap = GetParent<TileMap>();
+		foregroundTileMap = GetNode<TileMap>("/root/World/ForegroundTileMap");
+
+		for (int x = 0; x < horizontalChunks; x++)
+		{
+			for (int y = 0; y < verticalChunks; y++)
+			{
+				GenerateChunk(x, y);
+			}
+		}
+	}
+
+	private void GenerateChunk(int x, int y)
+	{
+		int worldX = x * (chunkSize + pathWidth);
+		int worldY = y * (chunkSize + pathWidth);
+
+		TransposeTilemap(paths[0], worldX, worldY, chunkSize + pathWidth, chunkSize + pathWidth, 0);
+		TransposeTilemap(chunks[0], worldX, worldY, chunkSize + pathWidth, chunkSize + pathWidth, pathWidth);
+	}
+
+	private void TransposeTilemap(PackedScene tilemap, int x, int y, int sizeX, int sizeY, int offset)
+	{
+		Node newScene = tilemap.Instance();
+		TileMap backgroundMap = newScene.GetNode<TileMap>("TileMap");
+		TileMap foregroundMap = newScene.GetNode<TileMap>("ForegroundTileMap");
+
+		for (int cx = 0; cx < sizeX + offset; cx++)
+		{
+			for (int cy = 0; cy < sizeY + offset; cy++)
+			{
+				tileMap.SetCell(x + cx + offset, y + cy + offset, backgroundMap.GetCell(cx, cy));
+				foregroundTileMap.SetCell(x + cx + offset, y + cy + offset, foregroundMap.GetCell(cx, cy));
+			}
+		}
+    
+		newScene.QueueFree();
+	}
+}
